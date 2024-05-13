@@ -1,0 +1,25 @@
+# Use the specified node image
+FROM node:20-alpine
+
+# Install necessary build dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
+# Set the working directory in the docker image
+WORKDIR /api
+
+# Only copy package.json and possibly yarn.lock if you have it
+COPY package.json .
+COPY yarn.lock* .
+
+# Install dependencies, ensuring the lock file isn't updated
+RUN yarn install --pure-lockfile
+
+# Rebuild argon2 with node-pre-gyp to match the alpine linux environment
+RUN npx @mapbox/node-pre-gyp rebuild -C node_modules/argon2
+
+# Note: The source files will be mounted via a volume in docker-compose, so no need to COPY
+EXPOSE 3000 9229
+
+# Command to run the application when the docker container starts
+# Make sure this command starts the server with hot reloading enabled
+CMD ["yarn", "run", "start:debug"]
